@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>{{ post.title }}</h1>
+    <p class="text-muted">By {{ post.user.first_name }} on {{ post.date_created.strftime('%Y-%m-%d %H:%M') }}</p>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            {{ post.content|nl2br|safe }}
+        </div>
+    </div>
+
+    {% if user.is_authenticated and (user.id == post.user_id or user.is_admin) %}
+    <div class="mb-3">
+        <a href

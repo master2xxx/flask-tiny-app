@@ -1,0 +1,168 @@
+<!-- website/templates/admin.html -->
+{% extends "base.html" %} {% block title %}Admin Panel{% endblock %} 
+
+{% block content %}
+<h1 align="center">Admin Panel</h1>
+<div class="container">
+  <!-- User Management Section -->
+  <h3>User Management</h3>
+  
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Name</th>
+        <th>Admin</th>
+        <th>Status</th>
+        <th>Date Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.id }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.first_name }}</td>
+        <td>{% if user.is_admin %}Yes{% else %}No{% endif %}</td>
+        <td id="status-{{ user.id }}">{% if user.is_blocked %}Blocked{% else %}Active{% endif %}</td>
+        <td>{{ user.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          <button 
+            class="btn btn-{% if user.is_blocked %}success{% else %}warning{% endif %} btn-sm" 
+            id="block-btn-{{ user.id }}"
+            onclick="toggleBlock({{ user.id }})"
+          >
+            {% if user.is_blocked %}Unblock{% else %}Block{% endif %}
+          </button>
+          <button 
+            class="btn btn-danger btn-sm" 
+            onclick="resetPassword({{ user.id }})"
+          >
+            Reset Password
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Post Management Section -->
+  <h3 class="mt-5">Post Management</h3>
+  <a href="{{ url_for('posts.create_post') }}" class="btn btn-primary mb-3">Create New Post</a>
+  
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Author</th>
+        <th>Created</th>
+        <th>Updated</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+      <tr>
+        <td>{{ post.id }}</td>
+        <td>
+          <a href="{{ url_for('posts.view_post', post_id=post.id) }}">{{ post.title }}</a>
+        </td>
+        <td>{{ post.user.first_name }} ({{ post.user.email }})</td>
+        <td>{{ post.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ post.date_updated.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          <a href="{{ url_for('posts.edit_post', post_id=post.id) }}" class="btn btn-primary btn-sm">Edit</a>
+          <button 
+            class="btn btn-danger btn-sm" 
+            onclick="deletePost({{ post.id }})"
+          >
+            Delete
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function toggleBlock(userId) {
+    fetch(`/admin/toggle-block/${userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const statusCell = document.getElementById(`status-${userId}`);
+        const blockBtn = document.getElementById(`block-btn-${userId}`);
+        
+        statusCell.textContent = data.is_blocked ? 'Blocked' : 'Active';
+        blockBtn.textContent = data.is_blocked ? 'Unblock' : 'Block';
+        blockBtn.className = `btn btn-${data.is_blocked ? 'success' : 'warning'} btn-sm`;
+        
+        alert(data.message);
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred');
+    });
+  }
+  
+  function resetPassword(userId) {
+    if (confirm('Are you sure you want to reset the password for this user?')) {
+      fetch(`/admin/reset-password/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+  }
+  
+  function deletePost(postId) {
+    if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      fetch(`/admin/delete-post/${postId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          // Reload the page to update the post list
+          window.location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+  }
+</script>
+{% endblock %}
